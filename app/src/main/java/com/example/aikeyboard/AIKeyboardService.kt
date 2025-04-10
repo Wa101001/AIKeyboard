@@ -1,34 +1,72 @@
 package com.example.aikeyboard
 
 import android.inputmethodservice.InputMethodService
+import android.os.Handler
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
-import android.view.inputmethod.InputConnection
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import java.io.IOException
 
 class AIKeyboardService : InputMethodService() {
 
+    private val TAG = "AIKeyboardDebug"
+
     override fun onCreateInputView(): View {
+        Log.d(TAG, "✅ onCreateInputView triggered")
+        Toast.makeText(this, "✅ Keyboard loaded", Toast.LENGTH_SHORT).show()
+
         val keyboardView = layoutInflater.inflate(R.layout.keyboard_view, null)
 
-        val inputConnection = currentInputConnection
-
-        // Buttons for AI features
+        val gptInputTextView = keyboardView.findViewById<TextView>(R.id.gpt_input)
         val translateButton = keyboardView.findViewById<Button>(R.id.btn_translate)
         val toggleButton = keyboardView.findViewById<Button>(R.id.btn_toggle_lang)
 
-        translateButton.setOnClickListener {
-            val selectedText = inputConnection?.getSelectedText(0)?.toString()
-            Toast.makeText(this, "Translate: $selectedText", Toast.LENGTH_SHORT).show()
-            // GPT-4 integration will go here
+        val typedText = StringBuilder()
+
+        // Confirm translate button exists
+        if (translateButton == null) {
+            Toast.makeText(this, "❌ Translate button not found!", Toast.LENGTH_SHORT).show()
+            Log.e(TAG, "❌ Translate button is null")
+        } else {
+            Log.d(TAG, "✅ Translate button found")
         }
 
-        toggleButton.setOnClickListener {
-            Toast.makeText(this, "Language toggled", Toast.LENGTH_SHORT).show()
+        // Translate button logic
+        translateButton?.setOnClickListener {
+            Toast.makeText(this, "🔥 Translate clicked", Toast.LENGTH_SHORT).show()
+            Log.d(TAG, "🔥 Translate clicked")
+
+            val inputText = typedText.toString()
+            if (inputText.isNotBlank()) {
+                Toast.makeText(this, "Translating: $inputText", Toast.LENGTH_SHORT).show()
+                Log.d(TAG, "🚀 Sending to GPT: $inputText")
+
+                callGPT(inputText) { result ->
+                    result?.let {
+                        runOnUiThread {
+                            gptInputTextView.text = "💬 ${it.trim()}"
+                            typedText.clear()
+                            Log.d(TAG, "✅ GPT response received: ${it.trim()}")
+                        }
+                    } ?: runOnUiThread {
+                        Toast.makeText(this, "❌ Translation failed", Toast.LENGTH_SHORT).show()
+                        Log.e(TAG, "❌ GPT returned null")
+                    }
+                }
+            } else {
+                Toast.makeText(this, "Nothing to translate", Toast.LENGTH_SHORT).show()
+                Log.w(TAG, "⚠️ Input was blank")
+            }
         }
 
-        // AZERTY key labels
+        // AZERTY keymap
         val keyMap = mapOf(
             R.id.key_a to "a", R.id.key_z to "z", R.id.key_e to "e", R.id.key_r to "r",
             R.id.key_t to "t", R.id.key_y to "y", R.id.key_u to "u", R.id.key_i to "i",
@@ -39,30 +77,111 @@ class AIKeyboardService : InputMethodService() {
             R.id.key_b to "b", R.id.key_n to "n"
         )
 
-        // Set up character key click listeners
-        for ((id, char) in keyMap) {
-            keyboardView.findViewById<Button>(id).setOnClickListener {
-                currentInputConnection?.commitText(char, 1)
+        keyMap.forEach { (id, char) ->
+            keyboardView.findViewById<Button>(id)?.setOnClickListener {
+                typedText.append(char)
+                gptInputTextView.text = typedText.toString()
+                Log.d(TAG, "🔤 Typed: $typedText")
             }
         }
 
-        // Handle space
-        keyboardView.findViewById<Button>(R.id.key_space).setOnClickListener {
-            currentInputConnection?.commitText(" ", 1)
+        keyboardView.findViewById<Button>(R.id.key_space)?.setOnClickListener {
+            typedText.append(" ")
+            gptInputTextView.text = typedText.toString()
+            Log.d(TAG, "🔤 Added space")
         }
 
-        // Handle delete
-        keyboardView.findViewById<Button>(R.id.key_delete).setOnClickListener {
-            currentInputConnection?.deleteSurroundingText(1, 0)
+        keyboardView.findViewById<Button>(R.id.key_delete)?.setOnClickListener {
+            if (typedText.isNotEmpty()) {
+                typedText.deleteCharAt(typedText.length - 1)
+                gptInputTextView.text = typedText.toString()
+                Log.d(TAG, "🔙 Deleted char → $typedText")
+            }
         }
 
-        // Handle enter
-        keyboardView.findViewById<Button>(R.id.key_enter).setOnClickListener {
-            currentInputConnection?.sendKeyEvent(
-                KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)
-            )
+        keyboardView.findViewById<Button>(R.id.key_enter)?.setOnClickListener {
+            typedText.append("\n")
+            gptInputTextView.text = typedText.toString()
+            Log.d(TAG, "↩️ New line added")
+        }
+
+        toggleButton?.setOnClickListener {
+            Toast.makeText(this, "Language toggled (placeholder)", Toast.LENGTH_SHORT).show()
+            Log.d(TAG, "🔁 Language toggled clicked")
         }
 
         return keyboardView
+    }
+
+    private fun callGPT(userInput: String, callback: (String?) -> Unit) {
+        val TAG = "AIKeyboardDebug"
+        val apiKey = BuildConfig.OPENAI_API_KEY
+        val url = "https://api.openai.com/v1/chat/completions"
+
+        val jsonPayload = """
+        {
+            "model": "gpt-3.5-turbo",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a casual French-English translator. Always return informal, friendly language."
+                },
+                {
+                    "role": "user",
+                    "content": "Translate or rewrite this informally: $userInput"
+                }
+            ],
+            "temperature": 0.7
+        }
+    """.trimIndent()
+
+        val requestBody = jsonPayload.toRequestBody("application/json".toMediaType())
+
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bearer $apiKey")
+            .post(requestBody)
+            .build()
+
+        OkHttpClient().newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+                Log.e(TAG, "❌ GPT request failed: ${e.message}")
+                callback(null)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val resString = response.body?.string()
+                Log.d(TAG, "🪵 Raw GPT response:\n$resString")
+
+                try {
+                    val json = JSONObject(resString)
+                    if (json.has("choices")) {
+                        val message = json
+                            .getJSONArray("choices")
+                            .getJSONObject(0)
+                            .getJSONObject("message")
+                            .getString("content")
+                        callback(message)
+                    } else if (json.has("error")) {
+                        val errorMsg = json.getJSONObject("error").getString("message")
+                        Log.e(TAG, "❌ GPT API Error: $errorMsg")
+                        callback("GPT Error: $errorMsg")
+                    } else {
+                        Log.e(TAG, "❌ Unexpected GPT response structure")
+                        callback(null)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    Log.e(TAG, "❌ JSON parsing error: ${e.message}")
+                    callback(null)
+                }
+            }
+        })
+    }
+
+    private fun runOnUiThread(action: () -> Unit) {
+        val handler = Handler(mainLooper)
+        handler.post { action() }
     }
 }
