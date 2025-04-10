@@ -1,21 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
     android:background="#eeeeee"
-    android:padding="10dp">
+    android:padding="8dp">
 
-    <Button
-        android:id="@+id/btn_toggle_lang"
-        android:layout_width="wrap_content"
+    <!-- Top bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="EN ↔ FR" />
+        android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/btn_translate"
-        android:layout_width="wrap_content"
+        <Button
+            android:id="@+id/btn_toggle_lang"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="EN ↔ FR" />
+
+        <Button
+            android:id="@+id/btn_translate"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="AI Translate" />
+    </LinearLayout>
+
+    <!-- Row 1: A Z E R T Y U I O P -->
+    <LinearLayout android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="AI Translate" />
+        android:orientation="horizontal">
+        <Button android:id="@+id/key_a" android:layout_weight="1" android:layout_width="0dp" android:text="A" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_z" android:layout_weight="1" android:layout_width="0dp" android:text="Z" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_e" android:layout_weight="1" android:layout_width="0dp" android:text="E" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_r" android:layout_weight="1" android:layout_width="0dp" android:text="R" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_t" android:layout_weight="1" android:layout_width="0dp" android:text="T" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_y" android:layout_weight="1" android:layout_width="0dp" android:text="Y" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_u" android:layout_weight="1" android:layout_width="0dp" android:text="U" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_i" android:layout_weight="1" android:layout_width="0dp" android:text="I" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_o" android:layout_weight="1" android:layout_width="0dp" android:text="O" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_p" android:layout_weight="1" android:layout_width="0dp" android:text="P" android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- Row 2: Q S D F G H J K L M -->
+    <LinearLayout android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <Button android:id="@+id/key_q" android:layout_weight="1" android:layout_width="0dp" android:text="Q" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_s" android:layout_weight="1" android:layout_width="0dp" android:text="S" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_d" android:layout_weight="1" android:layout_width="0dp" android:text="D" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_f" android:layout_weight="1" android:layout_width="0dp" android:text="F" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_g" android:layout_weight="1" android:layout_width="0dp" android:text="G" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_h" android:layout_weight="1" android:layout_width="0dp" android:text="H" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_j" android:layout_weight="1" android:layout_width="0dp" android:text="J" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_k" android:layout_weight="1" android:layout_width="0dp" android:text="K" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_l" android:layout_weight="1" android:layout_width="0dp" android:text="L" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_m" android:layout_weight="1" android:layout_width="0dp" android:text="M" android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- Row 3: W X C V B N Delete -->
+    <LinearLayout android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <Button android:id="@+id/key_w" android:layout_weight="1" android:layout_width="0dp" android:text="W" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_x" android:layout_weight="1" android:layout_width="0dp" android:text="X" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_c" android:layout_weight="1" android:layout_width="0dp" android:text="C" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_v" android:layout_weight="1" android:layout_width="0dp" android:text="V" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_b" android:layout_weight="1" android:layout_width="0dp" android:text="B" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_n" android:layout_weight="1" android:layout_width="0dp" android:text="N" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_delete" android:layout_weight="1" android:layout_width="0dp" android:text="⌫" android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- Row 4: Space, Enter -->
+    <LinearLayout android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <Button android:id="@+id/key_space" android:layout_weight="4" android:layout_width="0dp" android:text="Space" android:layout_height="wrap_content" />
+        <Button android:id="@+id/key_enter" android:layout_weight="1" android:layout_width="0dp" android:text="⏎" android:layout_height="wrap_content" />
+    </LinearLayout>
 </LinearLayout>
