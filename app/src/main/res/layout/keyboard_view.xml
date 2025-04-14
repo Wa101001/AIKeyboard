@@ -32,20 +32,21 @@
             android:text="AI Translate" />
     </LinearLayout>
 
-    <!-- GPT Input View -->
-    <TextView
-        android:id="@+id/gpt_input"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:minHeight="48dp"
-        android:padding="8dp"
-        android:background="#ffffff"
-        android:textColor="#000000"
-        android:text="Type here..."
-        android:textSize="16sp"
-        android:layout_marginBottom="8dp" />
+    <!--GPT Input View
 
-    <!-- Row 1 -->
+<TextView
+  android:id="@+id/gpt_input"
+  android:layout_width="match_parent"
+  android:layout_height="wrap_content"
+  android:minHeight="48dp"
+  android:padding="8dp"
+  android:background="#ffffff"
+  android:textColor="#000000"
+  android:text="Type here..."
+  android:textSize="16sp"
+  android:layout_marginBottom="8dp" />
+-->
+   <!-- Row 1 -->
     <LinearLayout android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"

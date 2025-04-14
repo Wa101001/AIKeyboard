@@ -6,11 +6,11 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
-import android.widget.TextView
 import android.widget.Toast
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 
@@ -24,52 +24,27 @@ class AIKeyboardService : InputMethodService() {
         Toast.makeText(this, "✅ Keyboard loaded", Toast.LENGTH_SHORT).show()
 
         val keyboardView = layoutInflater.inflate(R.layout.keyboard_view, null)
-
-        val gptInputTextView = keyboardView.findViewById<TextView>(R.id.gpt_input)
         val translateButton = keyboardView.findViewById<Button>(R.id.btn_translate)
         val toggleButton = keyboardView.findViewById<Button>(R.id.btn_toggle_lang)
 
-        val typedText = StringBuilder()
-
-        // Confirm translate button exists
-        if (translateButton == null) {
-            Toast.makeText(this, "❌ Translate button not found!", Toast.LENGTH_SHORT).show()
-            Log.e(TAG, "❌ Translate button is null")
-        } else {
-            Log.d(TAG, "✅ Translate button found")
-        }
-
         // Translate button logic
         translateButton?.setOnClickListener {
-            Toast.makeText(this, "🔥 Translate clicked", Toast.LENGTH_SHORT).show()
-            Log.d(TAG, "🔥 Translate clicked")
+            val selected = currentInputConnection?.getSelectedText(0)?.toString()?.trim()
 
-            val inputText = typedText.toString()
-            if (inputText.isNotBlank()) {
-                Toast.makeText(this, "Translating: $inputText", Toast.LENGTH_SHORT).show()
-                Log.d(TAG, "🚀 Sending to GPT: $inputText")
-
-                callGPT(inputText) { result ->
+            if (!selected.isNullOrBlank()) {
+                Log.d(TAG, "🔥 Translate clicked → '$selected'")
+                callGPT(selected) { result ->
                     result?.let {
                         runOnUiThread {
-                            // Insert response into real focused app field
                             currentInputConnection?.commitText(it.trim(), 1)
-
-                           // Reset fake input bar
-                            typedText.clear()
-                            gptInputTextView.text = ""
-
-                            typedText.clear()
-                            Log.d(TAG, "✅ GPT response received: ${it.trim()}")
+                            Log.d(TAG, "✅ Translation inserted: ${it.trim()}")
                         }
                     } ?: runOnUiThread {
                         Toast.makeText(this, "❌ Translation failed", Toast.LENGTH_SHORT).show()
-                        Log.e(TAG, "❌ GPT returned null")
                     }
                 }
             } else {
-                Toast.makeText(this, "Nothing to translate", Toast.LENGTH_SHORT).show()
-                Log.w(TAG, "⚠️ Input was blank")
+                Toast.makeText(this, "❌ No text selected", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -86,51 +61,39 @@ class AIKeyboardService : InputMethodService() {
 
         keyMap.forEach { (id, char) ->
             keyboardView.findViewById<Button>(id)?.setOnClickListener {
-                typedText.append(char)
-                gptInputTextView.text = typedText.toString()
-                Log.d(TAG, "🔤 Typed: $typedText")
+                currentInputConnection?.commitText(char, 1)
+                Log.d(TAG, "🔤 Typed: $char")
             }
         }
 
         keyboardView.findViewById<Button>(R.id.key_space)?.setOnClickListener {
-            typedText.append(" ")
-            gptInputTextView.text = typedText.toString()
-            Log.d(TAG, "🔤 Added space")
+            currentInputConnection?.commitText(" ", 1)
+            Log.d(TAG, "🔤 Space added")
         }
 
         keyboardView.findViewById<Button>(R.id.key_delete)?.setOnClickListener {
-            if (typedText.isNotEmpty()) {
-                typedText.deleteCharAt(typedText.length - 1)
-                gptInputTextView.text = typedText.toString()
-                Log.d(TAG, "🔙 Deleted from fake bar → $typedText")
-            } else {
-                // Always delete 1 char from app field as a fallback
-                currentInputConnection?.deleteSurroundingText(1, 0)
-                Log.d(TAG, "⌫ Deleted from app input field")
-            }
+            currentInputConnection?.deleteSurroundingText(1, 0)
+            Log.d(TAG, "⌫ Backspace sent to app")
         }
 
-
-
         keyboardView.findViewById<Button>(R.id.key_enter)?.setOnClickListener {
-            typedText.append("\n")
-            gptInputTextView.text = typedText.toString()
-            Log.d(TAG, "↩️ New line added")
+            currentInputConnection?.sendKeyEvent(
+                KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)
+            )
+            Log.d(TAG, "↩️ Enter sent")
         }
 
         toggleButton?.setOnClickListener {
             isFrenchToEnglish = !isFrenchToEnglish
-
             val langLabel = if (isFrenchToEnglish) "FR → EN" else "EN → FR"
             toggleButton.text = langLabel
-
             Toast.makeText(this, "Direction: $langLabel", Toast.LENGTH_SHORT).show()
             Log.d(TAG, "🔁 Language toggled → $langLabel")
         }
 
-
         return keyboardView
     }
+
     private fun getPromptInstruction(): String {
         return if (isFrenchToEnglish)
             "Translate this from French to English informally"
@@ -142,8 +105,7 @@ class AIKeyboardService : InputMethodService() {
         val apiKey = BuildConfig.OPENAI_API_KEY
         val url = "https://api.openai.com/v1/chat/completions"
 
-        // Build JSON payload safely
-        val messageArray = org.json.JSONArray()
+        val messageArray = JSONArray()
         messageArray.put(JSONObject().put("role", "system").put("content", getPromptInstruction()))
         messageArray.put(JSONObject().put("role", "user").put("content", userInput))
 
@@ -186,7 +148,6 @@ class AIKeyboardService : InputMethodService() {
             }
         })
     }
-
 
     private fun runOnUiThread(action: () -> Unit) {
         val handler = Handler(mainLooper)
