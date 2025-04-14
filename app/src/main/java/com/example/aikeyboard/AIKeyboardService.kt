@@ -52,7 +52,13 @@ class AIKeyboardService : InputMethodService() {
                 callGPT(inputText) { result ->
                     result?.let {
                         runOnUiThread {
-                            gptInputTextView.text = "💬 ${it.trim()}"
+                            // Insert response into real focused app field
+                            currentInputConnection?.commitText(it.trim(), 1)
+
+                           // Reset fake input bar
+                            typedText.clear()
+                            gptInputTextView.text = ""
+
                             typedText.clear()
                             Log.d(TAG, "✅ GPT response received: ${it.trim()}")
                         }
