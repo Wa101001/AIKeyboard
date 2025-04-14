@@ -17,6 +17,7 @@ import java.io.IOException
 class AIKeyboardService : InputMethodService() {
 
     private val TAG = "AIKeyboardDebug"
+    private var isFrenchToEnglish = true
 
     override fun onCreateInputView(): View {
         Log.d(TAG, "✅ onCreateInputView triggered")
@@ -106,11 +107,23 @@ class AIKeyboardService : InputMethodService() {
         }
 
         toggleButton?.setOnClickListener {
-            Toast.makeText(this, "Language toggled (placeholder)", Toast.LENGTH_SHORT).show()
-            Log.d(TAG, "🔁 Language toggled clicked")
+            isFrenchToEnglish = !isFrenchToEnglish
+
+            val langLabel = if (isFrenchToEnglish) "FR → EN" else "EN → FR"
+            toggleButton.text = langLabel
+
+            Toast.makeText(this, "Direction: $langLabel", Toast.LENGTH_SHORT).show()
+            Log.d(TAG, "🔁 Language toggled → $langLabel")
         }
 
+
         return keyboardView
+    }
+    private fun getPromptInstruction(): String {
+        return if (isFrenchToEnglish)
+            "Translate this from French to English informally"
+        else
+            "Translate this from English to French informally"
     }
 
     private fun callGPT(userInput: String, callback: (String?) -> Unit) {
@@ -128,7 +141,8 @@ class AIKeyboardService : InputMethodService() {
                 },
                 {
                     "role": "user",
-                    "content": "Translate or rewrite this informally: $userInput"
+                    "content": "${getPromptInstruction()}: $userInput"
+
                 }
             ],
             "temperature": 0.7
