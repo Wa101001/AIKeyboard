@@ -102,9 +102,15 @@ class AIKeyboardService : InputMethodService() {
             if (typedText.isNotEmpty()) {
                 typedText.deleteCharAt(typedText.length - 1)
                 gptInputTextView.text = typedText.toString()
-                Log.d(TAG, "🔙 Deleted char → $typedText")
+                Log.d(TAG, "🔙 Deleted from fake bar → $typedText")
+            } else {
+                // Always delete 1 char from app field as a fallback
+                currentInputConnection?.deleteSurroundingText(1, 0)
+                Log.d(TAG, "⌫ Deleted from app input field")
             }
         }
+
+
 
         keyboardView.findViewById<Button>(R.id.key_enter)?.setOnClickListener {
             typedText.append("\n")
@@ -133,39 +139,30 @@ class AIKeyboardService : InputMethodService() {
     }
 
     private fun callGPT(userInput: String, callback: (String?) -> Unit) {
-        val TAG = "AIKeyboardDebug"
         val apiKey = BuildConfig.OPENAI_API_KEY
         val url = "https://api.openai.com/v1/chat/completions"
 
-        val jsonPayload = """
-        {
-            "model": "gpt-3.5-turbo",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a casual French-English translator. Always return informal, friendly language."
-                },
-                {
-                    "role": "user",
-                    "content": "${getPromptInstruction()}: $userInput"
+        // Build JSON payload safely
+        val messageArray = org.json.JSONArray()
+        messageArray.put(JSONObject().put("role", "system").put("content", getPromptInstruction()))
+        messageArray.put(JSONObject().put("role", "user").put("content", userInput))
 
-                }
-            ],
-            "temperature": 0.7
-        }
-    """.trimIndent()
+        val jsonBody = JSONObject()
+        jsonBody.put("model", "gpt-3.5-turbo")
+        jsonBody.put("messages", messageArray)
+        jsonBody.put("temperature", 0.7)
 
-        val requestBody = jsonPayload.toRequestBody("application/json".toMediaType())
+        val mediaType = "application/json".toMediaType()
+        val body = jsonBody.toString().toRequestBody(mediaType)
 
         val request = Request.Builder()
             .url(url)
             .header("Authorization", "Bearer $apiKey")
-            .post(requestBody)
+            .post(body)
             .build()
 
         OkHttpClient().newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                e.printStackTrace()
                 Log.e(TAG, "❌ GPT request failed: ${e.message}")
                 callback(null)
             }
@@ -176,29 +173,20 @@ class AIKeyboardService : InputMethodService() {
 
                 try {
                     val json = JSONObject(resString)
-                    if (json.has("choices")) {
-                        val message = json
-                            .getJSONArray("choices")
-                            .getJSONObject(0)
-                            .getJSONObject("message")
-                            .getString("content")
-                        callback(message)
-                    } else if (json.has("error")) {
-                        val errorMsg = json.getJSONObject("error").getString("message")
-                        Log.e(TAG, "❌ GPT API Error: $errorMsg")
-                        callback("GPT Error: $errorMsg")
-                    } else {
-                        Log.e(TAG, "❌ Unexpected GPT response structure")
-                        callback(null)
-                    }
+                    val message = json
+                        .getJSONArray("choices")
+                        .getJSONObject(0)
+                        .getJSONObject("message")
+                        .getString("content")
+                    callback(message)
                 } catch (e: Exception) {
-                    e.printStackTrace()
-                    Log.e(TAG, "❌ JSON parsing error: ${e.message}")
+                    Log.e(TAG, "❌ GPT parse failed: ${e.message}")
                     callback(null)
                 }
             }
         })
     }
+
 
     private fun runOnUiThread(action: () -> Unit) {
         val handler = Handler(mainLooper)
